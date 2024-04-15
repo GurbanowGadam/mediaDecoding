@@ -1,0 +1,17 @@
+syntax = "proto3";
+package mediaDecoding;
+
+option go_package = "github.com/GurbanowGadam/mediaDecoding";
+
+service mediaDecodingService {
+    rpc StartVideoCutting(VideoCuttingRequest) returns (stream VideoCuttingResponse);
+}
+
+message VideoCuttingRequest {
+    string VideoPath = 1;
+}
+
+message VideoCuttingResponse {
+    string Status = 1;
+}
+

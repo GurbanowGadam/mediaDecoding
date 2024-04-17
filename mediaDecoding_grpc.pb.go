@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MediaDecodingServiceClient interface {
-	StartVideoCutting(ctx context.Context, in *VideoCuttingRequest, opts ...grpc.CallOption) (MediaDecodingService_StartVideoCuttingClient, error)
+	StartVideoCutting(ctx context.Context, opts ...grpc.CallOption) (MediaDecodingService_StartVideoCuttingClient, error)
 }
 
 type mediaDecodingServiceClient struct {
@@ -33,28 +33,27 @@ func NewMediaDecodingServiceClient(cc grpc.ClientConnInterface) MediaDecodingSer
 	return &mediaDecodingServiceClient{cc}
 }
 
-func (c *mediaDecodingServiceClient) StartVideoCutting(ctx context.Context, in *VideoCuttingRequest, opts ...grpc.CallOption) (MediaDecodingService_StartVideoCuttingClient, error) {
+func (c *mediaDecodingServiceClient) StartVideoCutting(ctx context.Context, opts ...grpc.CallOption) (MediaDecodingService_StartVideoCuttingClient, error) {
 	stream, err := c.cc.NewStream(ctx, &MediaDecodingService_ServiceDesc.Streams[0], "/mediaDecoding.mediaDecodingService/StartVideoCutting", opts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &mediaDecodingServiceStartVideoCuttingClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
 	return x, nil
 }
 
 type MediaDecodingService_StartVideoCuttingClient interface {
+	Send(*VideoCuttingRequest) error
 	Recv() (*VideoCuttingResponse, error)
 	grpc.ClientStream
 }
 
 type mediaDecodingServiceStartVideoCuttingClient struct {
 	grpc.ClientStream
+}
+
+func (x *mediaDecodingServiceStartVideoCuttingClient) Send(m *VideoCuttingRequest) error {
+	return x.ClientStream.SendMsg(m)
 }
 
 func (x *mediaDecodingServiceStartVideoCuttingClient) Recv() (*VideoCuttingResponse, error) {
@@ -69,7 +68,7 @@ func (x *mediaDecodingServiceStartVideoCuttingClient) Recv() (*VideoCuttingRespo
 // All implementations must embed UnimplementedMediaDecodingServiceServer
 // for forward compatibility
 type MediaDecodingServiceServer interface {
-	StartVideoCutting(*VideoCuttingRequest, MediaDecodingService_StartVideoCuttingServer) error
+	StartVideoCutting(MediaDecodingService_StartVideoCuttingServer) error
 	mustEmbedUnimplementedMediaDecodingServiceServer()
 }
 
@@ -77,7 +76,7 @@ type MediaDecodingServiceServer interface {
 type UnimplementedMediaDecodingServiceServer struct {
 }
 
-func (UnimplementedMediaDecodingServiceServer) StartVideoCutting(*VideoCuttingRequest, MediaDecodingService_StartVideoCuttingServer) error {
+func (UnimplementedMediaDecodingServiceServer) StartVideoCutting(MediaDecodingService_StartVideoCuttingServer) error {
 	return status.Errorf(codes.Unimplemented, "method StartVideoCutting not implemented")
 }
 func (UnimplementedMediaDecodingServiceServer) mustEmbedUnimplementedMediaDecodingServiceServer() {}
@@ -94,15 +93,12 @@ func RegisterMediaDecodingServiceServer(s grpc.ServiceRegistrar, srv MediaDecodi
 }
 
 func _MediaDecodingService_StartVideoCutting_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(VideoCuttingRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(MediaDecodingServiceServer).StartVideoCutting(m, &mediaDecodingServiceStartVideoCuttingServer{stream})
+	return srv.(MediaDecodingServiceServer).StartVideoCutting(&mediaDecodingServiceStartVideoCuttingServer{stream})
 }
 
 type MediaDecodingService_StartVideoCuttingServer interface {
 	Send(*VideoCuttingResponse) error
+	Recv() (*VideoCuttingRequest, error)
 	grpc.ServerStream
 }
 
@@ -112,6 +108,14 @@ type mediaDecodingServiceStartVideoCuttingServer struct {
 
 func (x *mediaDecodingServiceStartVideoCuttingServer) Send(m *VideoCuttingResponse) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func (x *mediaDecodingServiceStartVideoCuttingServer) Recv() (*VideoCuttingRequest, error) {
+	m := new(VideoCuttingRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // MediaDecodingService_ServiceDesc is the grpc.ServiceDesc for MediaDecodingService service.
@@ -126,6 +130,7 @@ var MediaDecodingService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "StartVideoCutting",
 			Handler:       _MediaDecodingService_StartVideoCutting_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "mediaDecoding.proto",
